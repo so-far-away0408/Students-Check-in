@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>学生签到页面</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif; }
+        body { 
+            background: linear-gradient(135deg, #667eea, #764ba2); 
+            min-height: 100vh; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            padding: 20px; 
+        }
+        .container { 
+            width: 100%; 
+            max-width: 500px; 
+            background: white; 
+            border-radius: 20px; 
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2); 
+            overflow: hidden; 
+        }
+        .header { 
+            background: #667eea; 
+            color: white; 
+            padding: 25px 20px; 
+            text-align: center; 
+        }
+        .header h1 { 
+            font-size: 24px; 
+            margin-bottom: 5px; 
+        }
+        .header p { 
+            opacity: 0.9; 
+            font-size: 14px; 
+        }
+        .form-container { 
+            padding: 30px; 
+        }
+        .form-group { 
+            margin-bottom: 20px; 
+        }
+        label { 
+            display: block; 
+            margin-bottom: 8px; 
+            font-weight: 600; 
+            color: #333; 
+        }
+        input { 
+            width: 100%; 
+            padding: 15px; 
+            border: 2px solid #e1e5ee; 
+            border-radius: 10px; 
+            font-size: 16px; 
+            transition: all 0.3s; 
+        }
+        input:focus { 
+            border-color: #667eea; 
+            outline: none; 
+            box-shadow: 0 0 0 3px rgba(102,126,234,0.2); 
+        }
+        button { 
+            width: 100%; 
+            padding: 15px; 
+            background: #667eea; 
+            color: white; 
+            border: none; 
+            border-radius: 10px; 
+            font-size: 16px; 
+            font-weight: 600; 
+            cursor: pointer; 
+            transition: background 0.3s; 
+        }
+        button:hover { 
+            background: #5a6fd8; 
+        }
+        .message { 
+            padding: 15px; 
+            border-radius: 10px; 
+            margin-top: 20px; 
+            text-align: center; 
+            display: none; 
+        }
+        .success { 
+            background: #d4edda; 
+            color: #155724; 
+            border: 1px solid #c3e6cb; 
+        }
+        .error { 
+            background: #f8d7da; 
+            color: #721c24; 
+            border: 1px solid #f5c6cb; 
+        }
+        .warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        .instruction-hint { 
+            background: #e3f2fd; 
+            border: 1px solid #bbdefb; 
+            border-radius: 8px; 
+            padding: 15px; 
+            margin-bottom: 20px; 
+            font-size: 14px; 
+        }
+        .hint-title { 
+            font-weight: bold; 
+            color: #1976d2; 
+            margin-bottom: 5px; 
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎓 学生签到</h1>
+            <p>请填写信息完成签到</p>
+        </div>
+        
+        <div class="form-container">
+            <div class="instruction-hint">
+                <div class="hint-title">📝 签到说明：</div>
+                <div>同一设备短时间连续签到将被标记</div>
+            </div>
+            
+            <form id="signinForm">
+                <div class="form-group">
+                    <label for="studentId">学号</label>
+                    <input type="text" id="studentId" name="studentId" placeholder="请输入您的学号" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="name">姓名</label>
+                    <input type="text" id="name" name="name" placeholder="请输入您的姓名" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="class">班级</label>
+                    <input type="text" id="class" name="class" placeholder="请输入您的班级" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="specialCode">特殊指令</label>
+                    <input type="text" id="specialCode" name="specialCode" placeholder="请输入特殊指令" required>
+                </div>
+                
+                <input type="hidden" id="signId" name="signId">
+                
+                <button type="submit">提交签到</button>
+            </form>
+            
+            <div class="message" id="message"></div>
+        </div>
+    </div>
+
+    <script>
+        // 获取教师端设置的学生名单
+        function getStudentList() {
+            const storedList = JSON.parse(localStorage.getItem('studentList'));
+            return storedList && storedList.length > 0 ? storedList : [];
+        }
+        
+        // 获取教师端设置
+        function getTeacherSettings() {
+            return JSON.parse(localStorage.getItem('teacherSettings')) || {
+                instructionPattern: "学号+X",
+                randomValue: "2024"
+            };
+        }
+        
+        // 验证学生信息是否在名单中
+        function validateStudentInfo(studentId, name, className) {
+            const studentList = getStudentList();
+            return studentList.some(student => 
+                student.studentId === studentId && 
+                student.name === name && 
+                student.className === className
+            );
+        }
+        
+        // 生成设备标识符
+        function getDeviceId() {
+            let deviceId = localStorage.getItem('deviceId');
+            if (!deviceId) {
+                deviceId = 'device_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
+                localStorage.setItem('deviceId', deviceId);
+            }
+            return deviceId;
+        }
+        
+        // 检查同一设备是否连续签到
+        function checkConsecutiveSignIn(studentId) {
+            const deviceId = getDeviceId();
+            const lastSignIn = JSON.parse(localStorage.getItem('lastSignIn') || '{}');
+            
+            // 如果是同一设备且短时间内连续签到
+            if (lastSignIn.deviceId === deviceId && lastSignIn.studentId !== studentId) {
+                const timeDiff = Date.now() - lastSignIn.timestamp;
+                // 如果5分钟内同一设备有不同学生签到，标记为可疑
+                if (timeDiff < 5 * 60 * 1000) {
+                    return true;
+                }
+            }
+            
+            // 更新最后签到记录
+            localStorage.setItem('lastSignIn', JSON.stringify({
+                deviceId: deviceId,
+                studentId: studentId,
+                timestamp: Date.now()
+            }));
+            
+            return false;
+        }
+        
+        // 检查同一天是否已经签到过
+        function checkDailySignIn(studentId) {
+            const today = new Date().toDateString();
+            const records = JSON.parse(localStorage.getItem('signinRecords')) || [];
+            
+            // 查找该学生今天的签到记录
+            const todaySignIn = records.find(record => {
+                const recordDate = new Date(record.timestamp).toDateString();
+                return record.studentId === studentId && recordDate === today;
+            });
+            
+            return !!todaySignIn;
+        }
+        
+        // 处理表单提交
+        document.getElementById('signinForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const studentId = document.getElementById('studentId').value;
+            const name = document.getElementById('name').value;
+            const className = document.getElementById('class').value;
+            const specialCode = document.getElementById('specialCode').value;
+            const signId = document.getElementById('signId').value;
+            
+            if (!studentId || !name || !className || !specialCode) {
+                showMessage('❌ 请填写完整信息', 'error');
+                return;
+            }
+            
+            // 验证学生信息是否在名单中
+            if (!validateStudentInfo(studentId, name, className)) {
+                showMessage('❌ 信息有误，请检查学号、姓名和班级', 'error');
+                return;
+            }
+            
+            // 检查同一天是否已经签到过
+            if (checkDailySignIn(studentId)) {
+                showMessage('⚠️ 请勿重复签到', 'warning');
+                return;
+            }
+            
+            // 检查同一设备连续签到
+            if (checkConsecutiveSignIn(studentId)) {
+                showMessage('⚠️ 签到完成，但检测到同一设备连续签到，已被标记', 'error');
+                
+                // 记录标记的签到
+                const record = {
+                    studentId: studentId,
+                    name: name,
+                    className: className,
+                    signId: signId,
+                    timestamp: new Date().toISOString(),
+                    deviceFlagged: true,
+                    deviceId: getDeviceId()
+                };
+                
+                let records = JSON.parse(localStorage.getItem('signinRecords')) || [];
+                records.push(record);
+                localStorage.setItem('signinRecords', JSON.stringify(records));
+                
+                document.getElementById('signinForm').reset();
+                return;
+            }
+            
+            const settings = getTeacherSettings();
+            const expectedCode = settings.instructionPattern.replace('X', settings.randomValue);
+            
+            if (specialCode === expectedCode) {
+                const record = {
+                    studentId: studentId,
+                    name: name,
+                    className: className,
+                    signId: signId,
+                    timestamp: new Date().toISOString(),
+                    deviceId: getDeviceId()
+                };
+                
+                let records = JSON.parse(localStorage.getItem('signinRecords')) || [];
+                records.push(record);
+                localStorage.setItem('signinRecords', JSON.stringify(records));
+                
+                showMessage(`✅ 签到成功！欢迎 ${name} 同学`, 'success');
+                document.getElementById('signinForm').reset();
+                
+                // 3秒后可以重新签到
+                setTimeout(() => {
+                    document.getElementById('message').style.display = 'none';
+                }, 3000);
+            } else {
+                showMessage('❌ 提交失败！特殊指令不正确', 'error');
+            }
+        });
+        
+        // 显示消息
+        function showMessage(text, type) {
+            const messageElement = document.getElementById('message');
+            messageElement.textContent = text;
+            messageElement.className = `message ${type}`;
+            messageElement.style.display = 'block';
+        }
+        
+        // 页面加载时初始化
+        window.onload = function() {
+            // 检查是否有学生名单
+            const studentList = getStudentList();
+            if (studentList.length === 0) {
+                showMessage('⚠️ 系统未初始化，请联系老师导入学生名单', 'warning');
+            }
+        };
+    </script>
+</body>
+</html>
