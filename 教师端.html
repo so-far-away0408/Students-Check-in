@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>老师签到管理系统</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif; }
+        body { background: linear-gradient(135deg, #2c3e50, #3498db); min-height: 100vh; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; border-radius: 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); overflow: hidden; }
+        .header { background: #3498db; color: white; padding: 30px; text-align: center; }
+        .header h1 { font-size: 32px; margin-bottom: 10px; }
+        .content { padding: 30px; }
+        .panel { background: #f8f9fa; padding: 25px; border-radius: 15px; border-left: 5px solid #3498db; margin-bottom: 25px; }
+        .panel h2 { color: #2c3e50; margin-bottom: 20px; font-size: 24px; display: flex; align-items: center; }
+        .panel h2 i { margin-right: 10px; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: 600; color: #333; }
+        input, select { width: 100%; padding: 12px; border: 2px solid #e1e5ee; border-radius: 8px; font-size: 16px; }
+        input:focus, select:focus { border-color: #3498db; outline: none; }
+        button { background: #3498db; color: white; border: none; padding: 12px 25px; border-radius: 8px; font-size: 16px; cursor: pointer; margin-right: 10px; margin-bottom: 10px; transition: all 0.3s; }
+        button:hover { background: #2980b9; transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        button.secondary { background: #95a5a6; }
+        button.secondary:hover { background: #7f8c8d; }
+        button.success { background: #27ae60; }
+        button.success:hover { background: #219653; }
+        button.danger { background: #e74c3c; }
+        button.danger:hover { background: #c0392b; }
+        .records { max-height: 400px; overflow-y: auto; }
+        .record-item { background: white; padding: 15px; margin-bottom: 10px; border-radius: 8px; border-left: 4px solid #27ae60; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .record-header { display: flex; justify-content: space-between; margin-bottom: 5px; }
+        .student-info { font-weight: bold; color: #2c3e50; }
+        .timestamp { color: #7f8c8d; font-size: 12px; }
+        .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px; }
+        .stat-card { background: white; padding: 20px; border-radius: 10px; text-align: center; box-shadow: 0 5px 15px rgba(0,0,0,0.1); transition: transform 0.3s; }
+        .stat-card:hover { transform: translateY(-5px); }
+        .stat-number { font-size: 32px; font-weight: bold; color: #3498db; margin-bottom: 5px; }
+        .stat-label { color: #7f8c8d; font-size: 14px; }
+        .instructions { background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px; padding: 15px; margin-top: 20px; }
+        .student-list-section { margin-top: 20px; }
+        .student-list { max-height: 300px; overflow-y: auto; margin-top: 10px; border: 1px solid #e1e5ee; border-radius: 8px; }
+        .student-item { background: white; padding: 12px; margin-bottom: 0; border-bottom: 1px solid #e1e5ee; display: flex; justify-content: space-between; align-items: center; transition: background 0.2s; }
+        .student-item:hover { background: #f1f8ff; }
+        .student-item:last-child { border-bottom: none; }
+        .student-details { flex: 1; }
+        .student-actions { display: flex; gap: 5px; }
+        .import-section { background: #e8f5e8; border: 1px solid #c8e6c9; border-radius: 8px; padding: 15px; margin-bottom: 15px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+        .absence { color: #e74c3c; font-weight: bold; }
+        .not-class { color: #95a5a6; font-weight: bold; }
+        .flex-row { display: flex; gap: 15px; }
+        .flex-row .form-group { flex: 1; }
+        .file-input-wrapper { position: relative; overflow: hidden; display: inline-block; }
+        .file-input-wrapper input[type=file] { position: absolute; left: 0; top: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
+        .file-input-label { display: inline-block; padding: 10px 15px; background: #3498db; color: white; border-radius: 5px; cursor: pointer; }
+        .file-input-label:hover { background: #2980b9; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
+        .modal-content { background: white; padding: 25px; border-radius: 10px; width: 90%; max-width: 500px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .modal-title { font-size: 20px; font-weight: bold; }
+        .close-modal { background: none; border: none; font-size: 24px; cursor: pointer; color: #7f8c8d; }
+        .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+        @media (max-width: 768px) {
+            .stats { grid-template-columns: 1fr; }
+            .flex-row { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 老师签到管理系统</h1>
+            <p>设置签到规则、管理学生名单、查看签到记录</p>
+        </div>
+        
+        <div class="content">
+            <!-- 签到设置 -->
+            <div class="panel">
+                <h2><i>⚙️</i> 签到设置</h2>
+                <div class="form-group">
+                    <label for="instructionPattern">特殊指令格式</label>
+                    <input type="text" id="instructionPattern" value="学号+X" placeholder="例如：学号+X 或 \"学号\"+X">
+                    <small style="color: #7f8c8d; margin-top: 5px; display: block;">
+                        提示：不带引号的汉字表示学生只需填写对应汉字，带引号的汉字表示必须与表格信息一致
+                    </small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="randomValue">随机值 (X)</label>
+                    <div class="flex-row">
+                        <input type="text" id="randomValue" value="2024" placeholder="可手动输入或自动生成">
+                        <button onclick="generateRandomValue()">自动生成</button>
+                    </div>
+                </div>
+                
+                <div class="instructions">
+                    <strong>当前指令示例：</strong><br>
+                    学生需要输入：<span id="instructionExample">学号2024</span>
+                </div>
+                
+                <div style="margin-top: 20px;">
+                    <button onclick="saveSettings()">保存设置</button>
+                    <button onclick="resetSettings()" class="secondary">重置</button>
+                </div>
+            </div>
+            
+            <!-- 统计信息 -->
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-number" id="totalSignins">0</div>
+                    <div class="stat-label">总签到人数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="todaySignins">0</div>
+                    <div class="stat-label">今日签到</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="studentCount">0</div>
+                    <div class="stat-label">班级人数</div>
+                </div>
+            </div>
+            
+            <!-- 签到记录 -->
+            <div class="panel">
+                <h2><i>📋</i> 签到记录</h2>
+                <div style="margin-bottom: 15px;">
+                    <button onclick="refreshRecords()">刷新记录</button>
+                    <button onclick="exportRecords()" class="success">📤 导出数据 (Excel)</button>
+                    <button onclick="clearRecords()" class="secondary">清空记录</button>
+                </div>
+                
+                <div class="records" id="recordsList">
+                    <!-- 签到记录将在这里显示 -->
+                </div>
+            </div>
+            
+            <!-- 班级名单管理 -->
+            <div class="panel">
+                <h2><i>👥</i> 班级名单管理</h2>
+                
+                <div class="import-section">
+                    <div class="file-input-wrapper">
+                        <button class="file-input-label">📥 导入学生名单</button>
+                        <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" onchange="importFromFile()">
+                    </div>
+                    <button onclick="loadExampleList()" class="secondary">📋 示例名单</button>
+                    <button onclick="exportStudentList()" class="secondary">📤 导出名单</button>
+                    <button onclick="clearStudentList()" class="secondary">🗑️ 清空名单</button>
+                </div>
+                
+                <div class="student-list-section">
+                    <h3>当前学生名单</h3>
+                    <div class="student-list" id="studentList">
+                        <!-- 学生名单将在这里显示 -->
+                    </div>
+                    <div style="margin-top: 10px;">
+                        <button onclick="addStudentManually()" class="secondary">➕ 手动添加学生</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 编辑学生信息模态框 -->
+    <div class="modal" id="editStudentModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">编辑学生信息</div>
+                <button class="close-modal" onclick="closeEditModal()">&times;</button>
+            </div>
+            <div class="form-group">
+                <label for="editStudentId">学号</label>
+                <input type="text" id="editStudentId">
+            </div>
+            <div class="form-group">
+                <label for="editStudentName">姓名</label>
+                <input type="text" id="editStudentName">
+            </div>
+            <div class="form-group">
+                <label for="editStudentClass">班级</label>
+                <input type="text" id="editStudentClass">
+            </div>
+            <div class="modal-footer">
+                <button onclick="closeEditModal()" class="secondary">取消</button>
+                <button onclick="saveStudentEdit()" class="success">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 引入SheetJS库用于导出Excel -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    
+    <script>
+        // 示例学生名单数据
+        const exampleStudentList = [
+            { studentId: "3240111003", name: "冯天羽", className: "材241" },
+            { studentId: "3240111015", name: "张紫燕", className: "材241" },
+            { studentId: "3240111009", name: "董玉莹", className: "材241" },
+            { studentId: "3240111017", name: "刘星靓", className: "材241" },
+            { studentId: "3240111018", name: "朱妍", className: "材241" },
+            { studentId: "3240111039", name: "王宇彤", className: "材242" },
+            { studentId: "3240111028", name: "张腾飞", className: "材242" },
+            { studentId: "3240111044", name: "袁梦", className: "材242" },
+            { studentId: "3240111040", name: "刘静怡", className: "材242" },
+            { studentId: "3240111030", name: "赵雅楠", className: "材242" }
+        ];
+        
+        let settings = JSON.parse(localStorage.getItem('teacherSettings')) || {
+            instructionPattern: "学号+X",
+            randomValue: "2024"
+        };
+        
+        let records = JSON.parse(localStorage.getItem('signinRecords')) || [];
+        let studentList = JSON.parse(localStorage.getItem('studentList')) || [];
+        let currentEditIndex = -1;
+
+        function init() {
+            document.getElementById('instructionPattern').value = settings.instructionPattern;
+            document.getElementById('randomValue').value = settings.randomValue;
+            updateInstructionExample();
+            updateStats();
+            displayRecords();
+            displayStudentList();
+        }
+        
+        function importFromFile() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+            
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+                    
+                    // 智能识别表格结构
+                    const processedData = processExcelData(jsonData);
+                    
+                    if (processedData.length > 0) {
+                        studentList = processedData;
+                        localStorage.setItem('studentList', JSON.stringify(studentList));
+                        displayStudentList();
+                        updateStats();
+                        alert(`成功导入 ${studentList.length} 名学生`);
+                    } else {
+                        alert('文件内容格式不正确或为空');
+                    }
+                } catch (error) {
+                    console.error(error);
+                    alert('文件读取失败，请检查文件格式');
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+        
+        function processExcelData(data) {
+            if (!data || data.length === 0) return [];
+            
+            // 查找班级、姓名、学号列的位置
+            let classCol = -1, nameCol = -1, idCol = -1;
+            
+            // 检查第一行（标题行）
+            const headerRow = data[0];
+            for (let i = 0; i < headerRow.length; i++) {
+                const cell = String(headerRow[i]).trim();
+                if (cell.includes('班') || cell.includes('class') || cell.includes('Class')) {
+                    classCol = i;
+                } else if (cell.includes('姓名') || cell.includes('name') || cell.includes('Name')) {
+                    nameCol = i;
+                } else if (cell.includes('学号') || cell.includes('id') || cell.includes('ID') || cell.includes('学号')) {
+                    idCol = i;
+                }
+            }
+            
+            // 如果没找到标题行，尝试第二行
+            if (classCol === -1 && nameCol === -1 && idCol === -1 && data.length > 1) {
+                const secondRow = data[1];
+                for (let i = 0; i < secondRow.length; i++) {
+                    const cell = String(secondRow[i]).trim();
+                    if (cell.includes('班') || cell.includes('class') || cell.includes('Class')) {
+                        classCol = i;
+                    } else if (cell.includes('姓名') || cell.includes('name') || cell.includes('Name')) {
+                        nameCol = i;
+                    } else if (cell.includes('学号') || cell.includes('id') || cell.includes('ID') || cell.includes('学号')) {
+                        idCol = i;
+                    }
+                }
+            }
+            
+            // 如果还是没找到，使用默认位置
+            if (classCol === -1) classCol = 0;
+            if (nameCol === -1) nameCol = 1;
+            if (idCol === -1) idCol = 2;
+            
+            // 处理数据行
+            const result = [];
+            const startRow = (headerRow && headerRow.some(cell => String(cell).includes('班') || 
+                String(cell).includes('姓名') || String(cell).includes('学号'))) ? 1 : 0;
+            
+            for (let i = startRow; i < data.length; i++) {
+                const row = data[i];
+                if (row && row.length > Math.max(classCol, nameCol, idCol)) {
+                    const className = String(row[classCol] || '').trim();
+                    const name = String(row[nameCol] || '').trim();
+                    const studentId = String(row[idCol] || '').trim();
+                    
+                    // 跳过空行
+                    if (className || name || studentId) {
+                        result.push({
+                            studentId: studentId,
+                            name: name,
+                            className: className
+                        });
+                    }
+                }
+            }
+            
+            return result;
+        }
+        
+        function loadExampleList() {
+            if (confirm('是否加载示例名单？这将替换当前名单。')) {
+                studentList = [...exampleStudentList];
+                localStorage.setItem('studentList', JSON.stringify(studentList));
+                displayStudentList();
+                updateStats();
+                alert('示例名单已加载');
+            }
+        }
+        
+        function clearStudentList() {
+            if (confirm('确定要清空学生名单吗？')) {
+                studentList = [];
+                localStorage.setItem('studentList', JSON.stringify(studentList));
+                displayStudentList();
+                updateStats();
+                alert('学生名单已清空');
+            }
+        }
+        
+        function displayStudentList() {
+            const studentListElement = document.getElementById('studentList');
+            
+            if (studentList.length === 0) {
+                studentListElement.innerHTML = '<p style="text-align: center; color: #7f8c8d; padding: 20px;">暂无学生名单，请先导入</p>';
+                return;
+            }
+            
+            // 按班级、姓名、学号排序
+            studentList.sort((a, b) => {
+                if (a.className !== b.className) return a.className.localeCompare(b.className);
+                if (a.name !== b.name) return a.name.localeCompare(b.name);
+                return a.studentId.localeCompare(b.studentId);
+            });
+            
+            studentListElement.innerHTML = studentList.map((student, index) => `
+                <div class="student-item" onclick="editStudent(${index})">
+                    <div class="student-details">
+                        <strong>${student.studentId}</strong> - ${student.name} (${student.className})
+                    </div>
+                    <div class="student-actions">
+                        <button class="secondary" onclick="event.stopPropagation(); deleteStudent(${index})">删除</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function editStudent(index) {
+            currentEditIndex = index;
+            const student = studentList[index];
+            document.getElementById('editStudentId').value = student.studentId;
+            document.getElementById('editStudentName').value = student.name;
+            document.getElementById('editStudentClass').value = student.className;
+            document.getElementById('editStudentModal').style.display = 'flex';
+        }
+        
+        function closeEditModal() {
+            document.getElementById('editStudentModal').style.display = 'none';
+            currentEditIndex = -1;
+        }
+        
+        function saveStudentEdit() {
+            if (currentEditIndex === -1) return;
+            
+            const studentId = document.getElementById('editStudentId').value;
+            const name = document.getElementById('editStudentName').value;
+            const className = document.getElementById('editStudentClass').value;
+            
+            if (!studentId || !name || !className) {
+                alert('请填写完整信息');
+                return;
+            }
+            
+            // 检查学号是否重复（排除当前编辑的学生）
+            const duplicate = studentList.some((student, index) => 
+                index !== currentEditIndex && student.studentId === studentId
+            );
+            
+            if (duplicate) {
+                alert('该学号已存在！');
+                return;
+            }
+            
+            studentList[currentEditIndex] = { studentId, name, className };
+            localStorage.setItem('studentList', JSON.stringify(studentList));
+            displayStudentList();
+            closeEditModal();
+            alert('学生信息更新成功！');
+        }
+        
+        function deleteStudent(index) {
+            if (confirm('确定要删除这名学生吗？')) {
+                studentList.splice(index, 1);
+                localStorage.setItem('studentList', JSON.stringify(studentList));
+                displayStudentList();
+                updateStats();
+                alert('学生删除成功！');
+            }
+        }
+        
+        function addStudentManually() {
+            const studentId = prompt('请输入学号：');
+            if (!studentId) return;
+            
+            const name = prompt('请输入姓名：');
+            if (!name) return;
+            
+            const className = prompt('请输入班级：');
+            if (!className) return;
+            
+            // 检查是否已存在
+            const exists = studentList.some(student => 
+                student.studentId === studentId
+            );
+            
+            if (exists) {
+                alert('该学号已存在！');
+                return;
+            }
+            
+            studentList.push({ studentId, name, className });
+            localStorage.setItem('studentList', JSON.stringify(studentList));
+            displayStudentList();
+            updateStats();
+            alert('学生添加成功！');
+        }
+        
+        function exportStudentList() {
+            if (studentList.length === 0) {
+                alert('没有可导出的学生名单');
+                return;
+            }
+            
+            const csvContent = "data:text/csv;charset=utf-8," 
+                + "学号,姓名,班级\n"
+                + studentList.map(student => 
+                    `${student.studentId},${student.name},${student.className}`
+                ).join("\n");
+            
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "学生名单.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+        
+        function generateRandomValue() {
+            settings.randomValue = Math.floor(1000 + Math.random() * 9000).toString();
+            document.getElementById('randomValue').value = settings.randomValue;
+            updateInstructionExample();
+            saveSettings();
+        }
+        
+        function updateInstructionExample() {
+            const pattern = document.getElementById('instructionPattern').value;
+            const example = pattern.replace('X', settings.randomValue);
+            document.getElementById('instructionExample').textContent = example;
+        }
+        
+        function saveSettings() {
+            settings.instructionPattern = document.getElementById('instructionPattern').value;
+            settings.randomValue = document.getElementById('randomValue').value;
+            localStorage.setItem('teacherSettings', JSON.stringify(settings));
+            updateInstructionExample();
+            alert('设置已保存！');
+        }
+        
+        function resetSettings() {
+            if (confirm('确定要重置所有设置吗？')) {
+                settings = { instructionPattern: "学号+X", randomValue: "2024" };
+                localStorage.setItem('teacherSettings', JSON.stringify(settings));
+                init();
+            }
+        }
+        
+        function updateStats() {
+            const total = records.length;
+            const today = records.filter(record => {
+                return new Date(record.timestamp).toDateString() === new Date().toDateString();
+            }).length;
+            
+            document.getElementById('totalSignins').textContent = total;
+            document.getElementById('todaySignins').textContent = today;
+            document.getElementById('studentCount').textContent = studentList.length;
+        }
+        
+        function displayRecords() {
+            const recordsList = document.getElementById('recordsList');
+            
+            if (records.length === 0) {
+                recordsList.innerHTML = '<p style="text-align: center; color: #7f8c8d; padding: 20px;">暂无签到记录</p>';
+                return;
+            }
+            
+            // 按时间倒序排列
+            const sortedRecords = [...records].sort((a, b) => 
+                new Date(b.timestamp) - new Date(a.timestamp)
+            );
+            
+            recordsList.innerHTML = sortedRecords.map(record => `
+                <div class="record-item">
+                    <div class="record-header">
+                        <span class="student-info">${record.name} (${record.studentId}) - ${record.className}</span>
+                        <span class="timestamp">${new Date(record.timestamp).toLocaleString()}</span>
+                    </div>
+                    <div style="color: #27ae60; font-size: 12px;">✅ 签到成功</div>
+                </div>
+            `).join('');
+        }
+        
+        function refreshRecords() {
+            records = JSON.parse(localStorage.getItem('signinRecords')) || [];
+            updateStats();
+            displayRecords();
+        }
+        
+        function exportRecords() {
+            if (records.length === 0) {
+                alert('没有可导出的记录');
+                return;
+            }
+            
+            // 获取今天的日期
+            const today = new Date().toISOString().split('T')[0];
+            
+            // 按班级分组
+            const classes = {};
+            studentList.forEach(student => {
+                if (!classes[student.className]) {
+                    classes[student.className] = [];
+                }
+                classes[student.className].push(student);
+            });
+            
+            // 创建Excel工作簿
+            const wb = XLSX.utils.book_new();
+            
+            // 创建签到记录表
+            const recordsData = [
+                ["班级", "姓名", "学号", "签到时间"]
+            ];
+            
+            records.forEach(record => {
+                recordsData.push([
+                    record.className,
+                    record.name,
+                    record.studentId,
+                    new Date(record.timestamp).toLocaleString()
+                ]);
+            });
+            
+            const recordsSheet = XLSX.utils.aoa_to_sheet(recordsData);
+            XLSX.utils.book_append_sheet(wb, recordsSheet, "签到记录");
+            
+            // 创建考勤统计表
+            const attendanceData = [
+                ["班级", "姓名", "学号"]
+            ];
+            
+            // 获取所有签到日期
+            const signinDates = [...new Set(records.map(record => 
+                record.timestamp.substring(0, 10)
+            ))].sort();
+            
+            // 添加日期列标题
+            signinDates.forEach(date => {
+                attendanceData[0].push(date + "是否到课");
+            });
+            
+            // 按班级处理考勤
+            for (const className in classes) {
+                const classStudents = classes[className];
+                
+                classStudents.forEach(student => {
+                    const row = [student.className, student.name, student.studentId];
+                    
+                    // 对每个日期检查签到情况
+                    signinDates.forEach(date => {
+                        // 检查该学生在该日期是否签到
+                        const studentSignins = records.filter(record => 
+                            record.studentId === student.studentId && 
+                            record.timestamp.startsWith(date)
+                        );
+                        
+                        if (studentSignins.length > 0) {
+                            // 同一小时只记录一次
+                            const uniqueHours = [...new Set(studentSignins.map(record => 
+                                record.timestamp.substring(11, 13)
+                            ))];
+                            row.push(uniqueHours.length > 0 ? "到课" : "未上课");
+                        } else {
+                            // 检查该班级在该日期是否有超过6人签到
+                            const classSignins = records.filter(record => 
+                                record.className === className && 
+                                record.timestamp.startsWith(date)
+                            );
+                            
+                            // 同一小时只记录一次
+                            const uniqueClassSignins = [...new Set(classSignins.map(record => 
+                                record.studentId + record.timestamp.substring(11, 13)
+                            ))];
+                            
+                            if (uniqueClassSignins.length >= 6) {
+                                row.push("旷课");
+                            } else {
+                                row.push("未上课");
+                            }
+                        }
+                    });
+                    
+                    attendanceData.push(row);
+                });
+            }
+            
+            const attendanceSheet = XLSX.utils.aoa_to_sheet(attendanceData);
+            
+            // 设置单元格样式
+            if (attendanceData.length > 1) {
+                for (let i = 1; i < attendanceData.length; i++) {
+                    for (let j = 3; j < attendanceData[i].length; j++) {
+                        const cellAddress = XLSX.utils.encode_cell({r: i, c: j});
+                        if (!attendanceSheet[cellAddress]) attendanceSheet[cellAddress] = {};
+                        if (!attendanceSheet[cellAddress].s) attendanceSheet[cellAddress].s = {};
+                        
+                        if (attendanceData[i][j] === "旷课") {
+                            attendanceSheet[cellAddress].s = {
+                                font: { color: { rgb: "FF0000" }, bold: true },
+                                alignment: { horizontal: "center" }
+                            };
+                        } else if (attendanceData[i][j] === "未上课") {
+                            attendanceSheet[cellAddress].s = {
+                                font: { color: { rgb: "95a5a6" }, bold: true },
+                                alignment: { horizontal: "center" }
+                            };
+                        } else {
+                            attendanceSheet[cellAddress].s = {
+                                alignment: { horizontal: "center" }
+                            };
+                        }
+                    }
+                }
+            }
+            
+            // 设置列宽
+            const colWidths = [
+                { wch: 20 }, // 班级
+                { wch: 10 }, // 姓名
+                { wch: 12 }  // 学号
+            ];
+            
+            // 为每个日期列设置宽度
+            for (let i = 0; i < signinDates.length; i++) {
+                colWidths.push({ wch: 15 });
+            }
+            
+            attendanceSheet['!cols'] = colWidths;
+            
+            // 设置所有单元格居中
+            const range = XLSX.utils.decode_range(attendanceSheet['!ref']);
+            for (let row = range.s.r; row <= range.e.r; row++) {
+                for (let col = range.s.c; col <= range.e.c; col++) {
+                    const cellAddress = XLSX.utils.encode_cell({r: row, c: col});
+                    if (!attendanceSheet[cellAddress]) attendanceSheet[cellAddress] = {};
+                    if (!attendanceSheet[cellAddress].s) attendanceSheet[cellAddress].s = {};
+                    if (!attendanceSheet[cellAddress].s.alignment) {
+                        attendanceSheet[cellAddress].s.alignment = { horizontal: "center" };
+                    }
+                }
+            }
+            
+            XLSX.utils.book_append_sheet(wb, attendanceSheet, "考勤统计");
+            
+            // 导出Excel文件
+            XLSX.writeFile(wb, `签到记录_${today}.xlsx`);
+        }
+        
+        function clearRecords() {
+            if (confirm('确定要清空所有签到记录吗？此操作不可恢复！')) {
+                records = [];
+                localStorage.setItem('signinRecords', JSON.stringify(records));
+                updateStats();
+                displayRecords();
+                alert('记录已清空');
+            }
+        }
+        
+        window.onload = init;
+        
+        // 自动刷新记录
+        setInterval(() => {
+            refreshRecords();
+        }, 5000);
+    </script>
+</body>
+</html>
